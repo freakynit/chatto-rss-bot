@@ -17,13 +17,13 @@ Mention the bot in Chatto to manage feeds:
 
 ```
 <@botname> add https://example.com/feed.xml
-<@botname> add https://example.com/feed.xml 30 news
-<@botname> add https://example.com/feed.xml 30 team news
-<@botname> add https://example.com/feed.xml news
-<@botname> pause https://example.com/feed.xml news
+<@botname> add https://example.com/feed.xml 30 channel-1
+<@botname> add https://example.com/feed.xml 30 team news channel
+<@botname> add https://example.com/feed.xml channel-2
+<@botname> pause https://example.com/feed.xml channel-1
 <@botname> pause
 <@botname> list
-<@botname> remove https://example.com/feed.xml news
+<@botname> remove https://example.com/feed.xml channel-1
 ```
 
 `add` defaults to 15 minutes and `#general`. The interval accepts 1 to 10080 minutes. The channel name is the remaining text after the URL and optional interval, so it can contain spaces; surrounding whitespace is trimmed. If the first word after the URL is numeric, it is treated as the interval. `pause` and `remove` also take the remaining text as the channel name. Channel names are exact and case sensitive; a leading `#` is optional. A subscription is unique by feed URL and channel, so adding it again updates its interval and resumes it if paused. `pause` with no arguments pauses every subscription; `pause <feed-url> [channel name]` pauses one, defaulting to `#general`. Paused subscriptions remain in SQLite and appear as paused in `list`. Add them again to resume. `remove` defaults to `#general`. Commands are accepted from direct mentions and replies appear in the command's thread.
