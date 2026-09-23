@@ -5,7 +5,12 @@ A Java 21 bot that publishes articles from any number of RSS 2.0, RDF RSS, and A
 ## Setup
 
 1. Install Java 21 and Maven. Clone Chatto Java SDK (unofficial) https://github.com/freakynit/chatto-java-sdk and install it : `mvn install`.
-2. Create a Chatto bot account and API key. Grant it access to `#general`, every destination channel, direct mention notifications, message read for mentioned commands, and message posting. Set `CHATTO_BASE_URL` and `CHATTO_TOKEN` in `.env` beside `config.yaml` or in the process environment. The token must start with `cht_BK_`.
+2. Create a Chatto bot account and API key. In the bot's permission settings, explicitly grant:
+   - Membership in `#general` and every channel where it will receive commands or publish feeds.
+   - `message.read-interactions` in channels where users will mention it. This lets it read the mentioned message and its thread. `message.read` also works, but grants broader message access.
+   - `message.post` in channels where it will reply or publish feeds. This allows root posts and thread replies.
+
+   Bots do not inherit `everyone` or role permissions, and their effective access is limited by their owner's permissions. Also enable the bot's direct-mention notification policy in command channels; that is a notification setting, not a permission. Set `CHATTO_BASE_URL` and `CHATTO_TOKEN` in `.env` beside `config.yaml` or in the process environment. The token must start with `cht_BK_`.
 3. Run `mvn exec:java`. Use `--config /path/to/config.yaml` for another configuration. `--once` polls current subscriptions once and exits without listening for commands.
 
 Mention the bot in Chatto to manage feeds:
