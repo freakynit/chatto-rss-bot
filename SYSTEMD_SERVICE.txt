@@ -1,0 +1,60 @@
+# sudo vi /etc/systemd/system/chatto-bot.service
+# sudo mkdir -p /var/log/chatto-bot
+# <<< Important >>>: use correct paths for mvn and JAVA_HOME variable below
+
+[Unit]
+Description=Chatto Bot Java Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+WorkingDirectory=/opt/codes/chatto-rss-bot
+
+# Verify with: which mvn
+ExecStart=/usr/bin/mvn exec:java
+
+Environment=JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+
+Restart=always
+RestartSec=5
+
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Send logs to systemd's journal.
+# StandardOutput=journal
+# StandardError=journal
+
+# Send logs to our directory
+StandardOutput=append:/var/log/chatto-bot/out.log
+StandardError=append:/var/log/chatto-bot/error.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
+# sudo systemctl daemon-reload
+# sudo systemctl enable --now chatto-bot.service
+
+# Check status
+# sudo systemctl status chatto-bot.service
+
+# Follow live logs (custom paths or journal)
+# tail -f /var/log/chatto-bot/out.log
+# tail -f /var/log/chatto-bot/error.log
+# sudo journalctl -u chatto-bot.service -f
+
+# Useful management commands
+# sudo systemctl restart chatto-bot
+# sudo systemctl stop chatto-bot
+# sudo systemctl start chatto-bot
+
+# After every change to the service file, run:
+# sudo systemctl daemon-reload
+# sudo systemctl restart chatto-bot

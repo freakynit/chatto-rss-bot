@@ -13,6 +13,7 @@ Mention the bot in Chatto to manage feeds:
 ```
 <@botname> add https://example.com/feed.xml
 <@botname> add https://example.com/feed.xml 30 news
+<@botname> add https://example.com/feed.xml 30 team news
 <@botname> add https://example.com/feed.xml news
 <@botname> pause https://example.com/feed.xml news
 <@botname> pause
@@ -20,14 +21,14 @@ Mention the bot in Chatto to manage feeds:
 <@botname> remove https://example.com/feed.xml news
 ```
 
-`add` defaults to 15 minutes and `#general`. The interval accepts 1 to 10080 minutes. Channel names are exact and case sensitive; a leading `#` is optional. A subscription is unique by feed URL and channel, so adding it again updates its interval and resumes it if paused. `pause` with no arguments pauses every subscription; `pause <feed-url> [channel-name]` pauses one, defaulting to `#general`. Paused subscriptions remain in SQLite and appear as paused in `list`. Add them again to resume. `remove` defaults to `#general`. Commands are accepted from direct mentions and replies appear in the command's thread.
+`add` defaults to 15 minutes and `#general`. The interval accepts 1 to 10080 minutes. The channel name is the remaining text after the URL and optional interval, so it can contain spaces; surrounding whitespace is trimmed. If the first word after the URL is numeric, it is treated as the interval. `pause` and `remove` also take the remaining text as the channel name. Channel names are exact and case sensitive; a leading `#` is optional. A subscription is unique by feed URL and channel, so adding it again updates its interval and resumes it if paused. `pause` with no arguments pauses every subscription; `pause <feed-url> [channel name]` pauses one, defaulting to `#general`. Paused subscriptions remain in SQLite and appear as paused in `list`. Add them again to resume. `remove` defaults to `#general`. Commands are accepted from direct mentions and replies appear in the command's thread.
 
 Feed polling starts immediately after `add`. On the first poll, the bot posts up to `max_items_per_poll` recent entries, oldest first. Each feed keeps its own interval. A failed feed or item is logged and retried later without stopping other feeds. If an article page is unavailable, the bot uses the feed summary. Keep `feeds.sqlite` across restarts to preserve subscriptions and delivery history.
 
 ## Configuration
 
-`config.yaml` sets the Chatto URL and token, SQLite path (`feed.database_file`), item limit, article length, article fetching, and HTTP timeout. Relative SQLite paths use the YAML directory. `${NAME}` requires an environment variable; `${NAME:-default}` supplies a default. Process environment values take precedence over `.env`.
+`config.yaml` sets the Chatto URL and token, SQLite path (`feed.database_file`), item limit, article length, article fetching, and HTTP timeout. Add subscriptions and choose their channels through bot commands. Relative SQLite paths use the YAML directory. `${NAME}` requires an environment variable; `${NAME:-default}` supplies a default. Process environment values take precedence over `.env`.
 
-An old configuration with `feed.url` and `chatto.room_name` or `chatto.room_id` seeds one subscription when a new database is first created. The old `posted-items.txt` file is not imported, so previously posted entries may be sent once when moving to SQLite. Remove `feed.url` after migration.
+Subscriptions are stored in SQLite and are created through bot commands. The old `posted-items.txt` file is not imported, so previously posted entries may be sent once when moving to SQLite.
 
 A confirmed Chatto post is recorded immediately in SQLite. A crash or database failure between Chatto accepting the post and the record write can still cause a duplicate on retry. SQLite and Chatto outages are logged; the process keeps polling and reconnecting. Startup requires a valid config, bot token, and writable database.

@@ -7,7 +7,6 @@ import io.chatto.sdk.model.NotificationOccurrenceData;
 import io.chatto.sdk.resource.Message;
 
 import java.nio.file.Path;
-import java.nio.file.Files;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -63,15 +62,8 @@ public final class RssBot {
             }
         }
         if (!profile.isBot()) throw new IllegalStateException("Chatto token does not belong to a bot account");
-        boolean newDatabase = !Files.exists(config.stateFile());
         var database = new FeedDatabase(config.stateFile());
         var bot = new RssBot(config, chatto, database, profile.id(), profile.login());
-        // A configured URL is a compatibility seed. Existing subscriptions are updated only by commands.
-        if (!config.feedUrl().isBlank() && newDatabase) {
-            String room = !config.roomId().isBlank() ? config.roomId() : bot.resolveRoom(config.roomName().isBlank() ? "general" : config.roomName());
-            database.add(config.feedUrl(), config.pollMinutes(), room,
-                    config.roomName().isBlank() ? "general" : config.roomName());
-        }
         if (once) { bot.poll(); return; }
         chatto.onNotificationOccurrencesReplace(event -> {
             for (var occurrence : event.occurrences()) bot.handleSafely(occurrence);
@@ -128,7 +120,7 @@ public final class RssBot {
         if (command == null) return;
         String answer;
         try { answer = execute(command); }
-        catch (IllegalArgumentException error) { answer = error.getMessage() + "\nUsage: @" + botLogin + " add <feed-url> [minutes] [channel-name]"; }
+        catch (IllegalArgumentException error) { answer = error.getMessage() + "\nUsage: @" + botLogin + " add <feed-url> [minutes] [channel name]"; }
         // Persist the command before replying so a repeated notification cannot modify subscriptions again.
         database.markCommand(ref.eventId());
         try { message.reply(answer); }
@@ -145,12 +137,12 @@ public final class RssBot {
     }
 
     private String execute(String text) throws Exception {
-        String[] parts = text.split("\\s+");
+        String[] parts = text.strip().split("\\s+", 4);
         if (parts.length == 0 || parts[0].isBlank() || "help".equalsIgnoreCase(parts[0]))
-            return "Commands: add <feed-url> [minutes] [channel-name], pause [feed-url] [channel-name], remove <feed-url> [channel-name], list";
+            return "Commands: add <feed-url> [minutes] [channel name], pause [feed-url] [channel name], remove <feed-url> [channel name], list";
         switch (parts[0].toLowerCase()) {
             case "add" -> {
-                if (parts.length < 2 || parts.length > 4) throw new IllegalArgumentException("Invalid add command.");
+                if (parts.length < 2) throw new IllegalArgumentException("Invalid add command.");
                 String url = HttpSource.requireHttpUrl(parts[1]).toString();
                 int minutes = 15;
                 String roomName = "general";
@@ -159,8 +151,9 @@ public final class RssBot {
                         try { minutes = Integer.parseInt(parts[2]); }
                         catch (NumberFormatException error) { throw new IllegalArgumentException("Interval is too large."); }
                         if (parts.length == 4) roomName = parts[3];
-                    } else if (parts.length == 3) roomName = parts[2];
-                    else throw new IllegalArgumentException("Interval must be a number of minutes.");
+                    } else {
+                        roomName = parts[2] + (parts.length == 4 ? " " + parts[3] : "");
+                    }
                 }
                 if (minutes < 1 || minutes > 10_080) throw new IllegalArgumentException("Interval must be 1 to 10080 minutes.");
                 roomName = RoomResolver.normalize(roomName);
@@ -169,9 +162,9 @@ public final class RssBot {
                 return "Added " + url + " to #" + roomName + " every " + minutes + " minutes.";
             }
             case "remove" -> {
-                if (parts.length < 2 || parts.length > 3) throw new IllegalArgumentException("Invalid remove command.");
+                if (parts.length < 2) throw new IllegalArgumentException("Invalid remove command.");
                 String url = HttpSource.requireHttpUrl(parts[1]).toString();
-                String roomName = RoomResolver.normalize(parts.length == 3 ? parts[2] : "general");
+                String roomName = RoomResolver.normalize(parts.length >= 3 ? parts[2] + (parts.length == 4 ? " " + parts[3] : "") : "general");
                 String roomId = resolveRoom(roomName);
                 return database.remove(url, roomId) > 0 ? "Removed " + url + " from #" + roomName + "." : "No matching subscription in #" + roomName + ".";
             }
@@ -180,9 +173,9 @@ public final class RssBot {
                     int count = database.pause(null, null);
                     return count == 0 ? "All subscriptions are already paused, or none exist." : "Paused " + count + " subscription(s). Add a feed again to resume it.";
                 }
-                if (parts.length > 3) throw new IllegalArgumentException("Invalid pause command.");
+                if (parts.length > 4) throw new IllegalArgumentException("Invalid pause command.");
                 String url = HttpSource.requireHttpUrl(parts[1]).toString();
-                String roomName = RoomResolver.normalize(parts.length == 3 ? parts[2] : "general");
+                String roomName = RoomResolver.normalize(parts.length >= 3 ? parts[2] + (parts.length == 4 ? " " + parts[3] : "") : "general");
                 String roomId = resolveRoom(roomName);
                 return database.pause(url, roomId) > 0 ? "Paused " + url + " in #" + roomName + ". Add it again to resume." :
                         "No active matching subscription in #" + roomName + ".";

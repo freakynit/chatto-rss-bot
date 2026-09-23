@@ -4,7 +4,6 @@ chatto:
   # Bot commands use direct mentions. Give the bot access to #general and target channels.
 feed:
   database_file: ${RSS_DATABASE_FILE:-feeds.sqlite}
-  poll_interval_minutes: ${RSS_POLL_INTERVAL_MINUTES:-15}
   max_items_per_poll: ${RSS_MAX_ITEMS_PER_POLL:-10}
   max_article_characters: ${RSS_MAX_ARTICLE_CHARACTERS:-7000}
   fetch_article: ${RSS_FETCH_ARTICLE:-true}
