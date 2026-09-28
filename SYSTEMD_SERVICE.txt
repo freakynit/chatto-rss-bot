@@ -1,13 +1,16 @@
 # sudo vi /etc/systemd/system/chatto-rss-bot.service
+# Or copy this file: sudo cp /opt/codes/chatto-rss-bot/SYSTEMD_SERVICE.txt /etc/systemd/system/chatto-rss-bot.service
 # sudo mkdir -p /var/log/chatto-rss-bot
-# <<< Important >>>: use correct paths for mvn and JAVA_HOME variable below
-# This bot gets its installs from Bot Hub callbacks (stored in SQLite next to
-# feeds.sqlite in the working directory). Install the bot in the hub dashboard
-# BEFORE starting this service, or it will wait for the callback. One instance
-# serves installs on any number of servers. No .env file is used.
+# Install Java 21 and Maven, and install the sibling chatto-java-sdk with mvn install.
+# Verify the mvn and JAVA_HOME paths below on the VPS before starting.
+# Configure config.yaml, including the public callback URL and webhook port/path.
+# This bot gets its installs from Bot Hub callbacks (stored in feeds.sqlite
+# in the working directory). Register the bot in the hub dashboard
+# and install it after this service starts; until then it waits for the callback.
+# One instance serves installs on any number of servers. No .env file is used.
 
 [Unit]
-Description=Chatto Bot Java Service
+Description=Chatto RSS Bot
 After=network-online.target
 Wants=network-online.target
 
@@ -33,9 +36,9 @@ TimeoutStopSec=30
 # StandardOutput=journal
 # StandardError=journal
 
-# Send logs to our directory
-StandardOutput=append:/var/log/chatto-bot/out.log
-StandardError=append:/var/log/chatto-bot/error.log
+# Send logs to our directory; create it before starting the service.
+StandardOutput=append:/var/log/chatto-rss-bot/out.log
+StandardError=append:/var/log/chatto-rss-bot/error.log
 
 NoNewPrivileges=true
 PrivateTmp=true
@@ -44,21 +47,21 @@ PrivateTmp=true
 WantedBy=multi-user.target
 
 # sudo systemctl daemon-reload
-# sudo systemctl enable --now chatto-bot.service
+# sudo systemctl enable --now chatto-rss-bot.service
 
 # Check status
-# sudo systemctl status chatto-bot.service
+# sudo systemctl status chatto-rss-bot.service
 
 # Follow live logs (custom paths or journal)
-# tail -f /var/log/chatto-bot/out.log
-# tail -f /var/log/chatto-bot/error.log
-# sudo journalctl -u chatto-bot.service -f
+# tail -f /var/log/chatto-rss-bot/out.log
+# tail -f /var/log/chatto-rss-bot/error.log
+# sudo journalctl -u chatto-rss-bot.service -f
 
 # Useful management commands
-# sudo systemctl restart chatto-bot
-# sudo systemctl stop chatto-bot
-# sudo systemctl start chatto-bot
+# sudo systemctl restart chatto-rss-bot.service
+# sudo systemctl stop chatto-rss-bot.service
+# sudo systemctl start chatto-rss-bot.service
 
 # After every change to the service file, run:
 # sudo systemctl daemon-reload
-# sudo systemctl restart chatto-bot
+# sudo systemctl restart chatto-rss-bot.service

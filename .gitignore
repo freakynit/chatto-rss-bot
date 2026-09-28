@@ -1,6 +1,4 @@
 /target/
-/posted-items.txt
 /.idea/
 *.iml
 feeds.sqlite
-/hub-install.json
