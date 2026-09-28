@@ -51,7 +51,32 @@ public final class RssBot {
             else throw new IllegalArgumentException("Usage: RssBot [--config path] [--once]");
         }
         Config config = Config.load(configPath);
-        var chatto = new ChattoClient(new ChattoClientOptions(config.baseUrl(), config.token()));
+        Path installPath = config.installFile();
+        HubCallbackServer callbackServer =
+                HubCallbackServer.start(config.webhookPort(), config.webhookPath(), installPath, receipt ->
+                        LOG.info("Hub reinstall received for " + receipt.login() + "; restart to use the new key."));
+        HubInstall install = waitForInstall(config, installPath, once);
+        if (!install.apiKey().startsWith("cht_BK_")) {
+            throw new IllegalStateException("Hub receipt api_key is not a bot API key (cht_BK_...)");
+        }
+        if (!install.login().equals(config.botLogin())) {
+            LOG.warning("Receipt login " + install.login() + " differs from config hub.bot_login "
+                    + config.botLogin() + "; using the receipt.");
+        }
+        String receiptServer = install.chattoServerUrl() == null ? "" : install.chattoServerUrl().replaceAll("/+$", "");
+        String configServer = config.baseUrl().replaceAll("/+$", "");
+        if (!receiptServer.isEmpty() && !receiptServer.equals(configServer)) {
+            LOG.warning("Receipt is for " + receiptServer + " but config points at " + configServer);
+        }
+        for (var denied : install.deniedPermissions().entrySet()) {
+            LOG.warning("Hub denied permission " + denied.getKey() + ": " + denied.getValue());
+        }
+        for (var failed : install.failedRooms().entrySet()) {
+            LOG.warning("Hub could not add room " + failed.getKey() + ": " + failed.getValue());
+        }
+        LOG.info("Hub install: granted=" + install.grantedPermissions() + " rooms="
+                + install.addedRooms().stream().map(HubInstall.RoomRef::name).toList());
+        var chatto = new ChattoClient(new ChattoClientOptions(config.baseUrl(), install.apiKey()));
         io.chatto.sdk.model.UserData profile;
         while (true) {
             try { profile = chatto.viewer().fetch().user().profile(); break; }
@@ -87,6 +112,28 @@ public final class RssBot {
             catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
         }
         chatto.disconnect();
+    }
+
+    /**
+     * Loads the hub install receipt, waiting for the dashboard install when it
+     * does not exist yet. {@code --once} fails fast instead of waiting.
+     */
+    private static HubInstall waitForInstall(Config config, Path installPath, boolean once) throws Exception {
+        var existing = HubInstall.load(installPath);
+        if (existing.isPresent()) return existing.get();
+        String howto = "Register login " + config.botLogin() + " in the hub dashboard (" + config.hubBaseUrl()
+                + "/dashboard) with callback " + config.callbackPublicUrl() + " and install it.";
+        if (once) throw new IllegalStateException("No hub install receipt at " + installPath + ". " + howto);
+        LOG.warning("No hub install receipt at " + installPath + ". " + howto + " Waiting for the callback...");
+        while (!Thread.currentThread().isInterrupted()) {
+            Thread.sleep(5_000);
+            var found = HubInstall.load(installPath);
+            if (found.isPresent()) {
+                LOG.info("Hub install receipt arrived.");
+                return found.get();
+            }
+        }
+        throw new InterruptedException("Interrupted while waiting for hub install");
     }
 
     private void connect() {

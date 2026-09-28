@@ -1,6 +1,9 @@
-# sudo vi /etc/systemd/system/chatto-bot.service
-# sudo mkdir -p /var/log/chatto-bot
+# sudo vi /etc/systemd/system/chatto-rss-bot.service
+# sudo mkdir -p /var/log/chatto-rss-bot
 # <<< Important >>>: use correct paths for mvn and JAVA_HOME variable below
+# This bot gets its token from the Bot Hub callback (hub-install.json in the
+# working directory). Install the bot in the hub dashboard BEFORE starting this
+# service, or it will wait for the callback. No .env file is used.
 
 [Unit]
 Description=Chatto Bot Java Service

@@ -1,7 +1,31 @@
+# Bot Hub registration for this bot. Register these exact values in the hub
+# dashboard, then install: the hub provisions the Chatto bot and POSTs the
+# API key + grant report to the callback URL below.
+hub:
+  base_url: ${HUB_BASE_URL:-http://localhost:8080}
+  # Local JSON file where the hub install callback is saved (holds the live api_key).
+  install_file: ${HUB_INSTALL_FILE:-hub-install.json}
+  bot_login: ${HUB_BOT_LOGIN:-rss_2_bot}
+  bot_display_name: ${HUB_BOT_DISPLAY_NAME:-RSS 2 Bot}
+  bot_description: ${HUB_BOT_DESCRIPTION:-Publishes RSS/Atom feeds to channels. Mention me to add, pause, remove or list subscriptions.}
+  callback_public_url: ${HUB_CALLBACK_URL:-https://open-proxy.space/chatto/callback}
+  requested_permissions:
+    - message.read
+    - message.read-interactions
+    - message.post-in-interactions
+  requested_rooms:
+    - general
+    - Standup
+
+# Local webhook listener that receives the hub install callback.
+webhook:
+  port: ${WEBHOOK_PORT:-3000}
+  path: ${WEBHOOK_PATH:-/chatto/callback}
+
 chatto:
-  base_url: ${CHATTO_BASE_URL:-http://localhost:4001}
-  token: ${CHATTO_TOKEN}
-  # Bot commands use direct mentions. Give the bot access to #general and target channels.
+  base_url: ${CHATTO_BASE_URL:-https://chat.stupidlabs.lol}
+  # No token here: it arrives via the hub callback and is read from hub.install_file.
+
 feed:
   database_file: ${RSS_DATABASE_FILE:-feeds.sqlite}
   max_items_per_poll: ${RSS_MAX_ITEMS_PER_POLL:-10}
