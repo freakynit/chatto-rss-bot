@@ -21,8 +21,7 @@ import java.util.regex.Pattern;
  * stored in SQLite (see {@code feed.database_file}). Unknown sections such as a
  * legacy {@code chatto} block are ignored.
  */
-record Config(String hubBaseUrl,
-              String botLogin, String botDisplayName, String botDescription, String callbackPublicUrl,
+record Config(String botLogin, String botDisplayName, String botDescription, String callbackPublicUrl,
               List<String> requestedPermissions, List<String> requestedRooms,
               int webhookPort, String webhookPath,
               int maxItems, int maxArticleCharacters, boolean fetchArticle,
@@ -36,9 +35,6 @@ record Config(String hubBaseUrl,
         JsonNode hub = required(root, "hub");
         JsonNode webhook = required(root, "webhook");
         JsonNode feed = required(root, "feed");
-
-        String hubBaseUrl = string(hub, "base_url", variables);
-        HttpSource.requireHttpUrl(hubBaseUrl);
 
         String botLogin = string(hub, "bot_login", variables).toLowerCase();
         if (!botLogin.matches("[a-z0-9_]{2,32}") || !botLogin.endsWith("_bot")) {
@@ -71,7 +67,7 @@ record Config(String hubBaseUrl,
         if (state.isBlank()) state = "feeds.sqlite";
         Path stateFile = Path.of(state);
         if (!stateFile.isAbsolute()) stateFile = directory.resolve(stateFile);
-        return new Config(hubBaseUrl, botLogin, botDisplayName, botDescription,
+        return new Config(botLogin, botDisplayName, botDescription,
                 callbackPublicUrl, requestedPermissions, requestedRooms, webhookPort, webhookPath,
                 maxItems, maxChars, Boolean.parseBoolean(fetchSetting), stateFile, timeout);
     }

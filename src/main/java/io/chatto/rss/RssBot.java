@@ -106,8 +106,8 @@ public final class RssBot {
      */
     private void waitForInstall(boolean once) throws Exception {
         if (!database.installs().isEmpty()) return;
-        String howto = "Register login " + config.botLogin() + " in the hub dashboard (" + config.hubBaseUrl()
-                + "/dashboard) with callback " + config.callbackPublicUrl() + " and install it.";
+        String howto = "Register login " + config.botLogin() + " in the hub dashboard"
+                + " with callback " + config.callbackPublicUrl() + " and install it.";
         if (once) throw new IllegalStateException("No hub installs in SQLite. " + howto);
         LOG.warning("No hub installs yet. " + howto + " Waiting for the callback...");
         while (!Thread.currentThread().isInterrupted()) {

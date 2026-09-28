@@ -2,7 +2,6 @@
 # dashboard, then install: the hub provisions the Chatto bot and POSTs the
 # API key + grant report to the callback URL below.
 hub:
-  base_url: ${HUB_BASE_URL:-http://localhost:8080}
   bot_login: ${HUB_BOT_LOGIN:-rss_2_bot}
   bot_display_name: ${HUB_BOT_DISPLAY_NAME:-RSS 2 Bot}
   bot_description: ${HUB_BOT_DESCRIPTION:-Publishes RSS/Atom feeds to channels. Mention me to add, pause, remove or list subscriptions.}

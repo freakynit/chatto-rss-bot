@@ -29,6 +29,6 @@ mention reads and in-thread replies, but channel root posts need `message.post`
 and fail with `permission_denied`. Feed publishing to channels therefore requires
 adding `message.post` in the hub and reinstalling.
 
-Removed: `chatto.base_url` config, `hub.install_file` config, file-based install
+Removed: `chatto.base_url` config, `hub.base_url` config, `hub.install_file` config, file-based install
 receipts (`hub-install.json`), `PostedStore`/`posted-items.txt` (superseded by
 the SQLite `posted` table).

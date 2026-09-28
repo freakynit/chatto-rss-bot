@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ConfigTest {
     private static final String VALID = """
             hub:
-              base_url: http://localhost:8080
               bot_login: rss_hub_bot
               bot_display_name: RSS Hub Bot
               bot_description: Feeds.
