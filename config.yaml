@@ -2,10 +2,10 @@
 # dashboard, then install: the hub provisions the Chatto bot and POSTs the
 # API key + grant report to the callback URL below.
 hub:
-  bot_login: ${HUB_BOT_LOGIN:-rss_2_bot}
-  bot_display_name: ${HUB_BOT_DISPLAY_NAME:-RSS 2 Bot}
+  bot_login: ${HUB_BOT_LOGIN:-awesome_rss_bot}
+  bot_display_name: ${HUB_BOT_DISPLAY_NAME:-Awesome RSS Bot}
   bot_description: ${HUB_BOT_DESCRIPTION:-Publishes RSS/Atom feeds to channels. Mention me to add, pause, remove or list subscriptions.}
-  callback_public_url: ${HUB_CALLBACK_URL:-https://open-proxy.space/chatto/callback}
+  callback_public_url: ${HUB_CALLBACK_URL:-https://chatto-rss-bot.stupidlabs.lol/chatto/callback}
   requested_permissions:
     - message.read
     - message.read-interactions
@@ -18,7 +18,7 @@ hub:
 # Receipts (server URL + api_key) are stored in the SQLite database below,
 # so one bot instance can serve installs on any number of servers.
 webhook:
-  port: ${WEBHOOK_PORT:-3000}
+  port: ${WEBHOOK_PORT:-9028}
   path: ${WEBHOOK_PATH:-/chatto/callback}
 
 # No chatto server URL or token here: both arrive via hub install callbacks.
