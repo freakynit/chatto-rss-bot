@@ -8,18 +8,16 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Minimal webhook listener for the Bot Hub install callback.
- * Every valid POST is persisted verbatim (pretty-printed) to the install file,
- * so the delivered {@code api_key} survives restarts.
+ * Minimal webhook listener for Bot Hub install callbacks.
+ * Every valid POST is upserted into SQLite keyed by its Chatto server URL,
+ * so one bot instance accumulates installs on any number of servers and
+ * the delivered {@code api_key} values survive restarts.
  */
 final class HubCallbackServer {
     private static final Logger LOG = Logger.getLogger(HubCallbackServer.class.getName());
@@ -32,7 +30,7 @@ final class HubCallbackServer {
         this.server = server;
     }
 
-    static HubCallbackServer start(int port, String path, Path installFile, Consumer<HubInstall> onInstall) throws IOException {
+    static HubCallbackServer start(int port, String path, FeedDatabase database, Consumer<HubInstall> onInstall) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         var callback = new HubCallbackServer(server);
         server.createContext(path, exchange -> {
@@ -59,26 +57,31 @@ final class HubCallbackServer {
                     send(exchange, 400, "{\"ok\":false,\"error\":\"invalid JSON\"}");
                     return;
                 }
-                String botUserId = text(payload, "bot_user_id");
-                String apiKey = text(payload, "api_key");
-                if (botUserId.isBlank() || apiKey.isBlank()) {
-                    send(exchange, 400, "{\"ok\":false,\"error\":\"missing bot_user_id or api_key\"}");
+                HubInstall install;
+                try {
+                    install = HubInstall.parse(payload);
+                } catch (IllegalArgumentException error) {
+                    send(exchange, 400, "{\"ok\":false,\"error\":\"" + error.getMessage().replace("\"", "'") + "\"}");
                     return;
                 }
-                Path parent = installFile.toAbsolutePath().getParent();
-                if (parent != null) Files.createDirectories(parent);
-                Path tmp = installFile.resolveSibling(installFile.getFileName() + ".tmp");
-                Files.writeString(tmp, callback.mapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload));
-                Files.move(tmp, installFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-                LOG.info("Saved hub install receipt for " + text(payload, "login")
-                        + " (" + botUserId + "): granted=" + payload.path("granted_permissions")
-                        + " denied=" + payload.path("denied_permissions").size()
-                        + " rooms=" + payload.path("added_rooms").size()
-                        + " failedRooms=" + payload.path("failed_rooms").size());
+                String raw = new String(body, StandardCharsets.UTF_8);
                 try {
-                    onInstall.accept(HubInstall.load(installFile).orElseThrow());
+                    database.upsertInstall(install, raw);
                 } catch (Exception error) {
-                    LOG.log(Level.WARNING, "Saved receipt but could not parse it", error);
+                    LOG.log(Level.WARNING, "Could not store hub install receipt", error);
+                    send(exchange, 500, "{\"ok\":false}");
+                    return;
+                }
+                LOG.info("Saved hub install receipt for " + install.login()
+                        + " (" + install.botUserId() + ") on " + install.serverKey()
+                        + ": granted=" + install.grantedPermissions()
+                        + " denied=" + install.deniedPermissions().size()
+                        + " rooms=" + install.addedRooms().size()
+                        + " failedRooms=" + install.failedRooms().size());
+                try {
+                    onInstall.accept(install);
+                } catch (Exception error) {
+                    LOG.log(Level.WARNING, "Stored receipt but could not apply it", error);
                 }
                 send(exchange, 200, "{\"ok\":true}");
             } catch (Exception error) {
@@ -101,17 +104,12 @@ final class HubCallbackServer {
             return thread;
         }));
         server.start();
-        LOG.info("Hub callback listener on :" + port + path + " -> " + installFile);
+        LOG.info("Hub callback listener on :" + port + path + " -> SQLite installs");
         return callback;
     }
 
     void stop() {
         server.stop(0);
-    }
-
-    private static String text(JsonNode node, String field) {
-        JsonNode child = node == null ? null : node.get(field);
-        return child == null || child.isNull() ? "" : child.asText("");
     }
 
     private static void send(com.sun.net.httpserver.HttpExchange exchange, int status, String body) throws IOException {

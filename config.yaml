@@ -3,8 +3,6 @@
 # API key + grant report to the callback URL below.
 hub:
   base_url: ${HUB_BASE_URL:-http://localhost:8080}
-  # Local JSON file where the hub install callback is saved (holds the live api_key).
-  install_file: ${HUB_INSTALL_FILE:-hub-install.json}
   bot_login: ${HUB_BOT_LOGIN:-rss_2_bot}
   bot_display_name: ${HUB_BOT_DISPLAY_NAME:-RSS 2 Bot}
   bot_description: ${HUB_BOT_DESCRIPTION:-Publishes RSS/Atom feeds to channels. Mention me to add, pause, remove or list subscriptions.}
@@ -18,13 +16,13 @@ hub:
     - Standup
 
 # Local webhook listener that receives the hub install callback.
+# Receipts (server URL + api_key) are stored in the SQLite database below,
+# so one bot instance can serve installs on any number of servers.
 webhook:
   port: ${WEBHOOK_PORT:-3000}
   path: ${WEBHOOK_PATH:-/chatto/callback}
 
-chatto:
-  base_url: ${CHATTO_BASE_URL:-https://chat.stupidlabs.lol}
-  # No token here: it arrives via the hub callback and is read from hub.install_file.
+# No chatto server URL or token here: both arrive via hub install callbacks.
 
 feed:
   database_file: ${RSS_DATABASE_FILE:-feeds.sqlite}

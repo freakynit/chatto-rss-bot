@@ -12,7 +12,6 @@ class ConfigTest {
     private static final String VALID = """
             hub:
               base_url: http://localhost:8080
-              install_file: hub-install.json
               bot_login: rss_hub_bot
               bot_display_name: RSS Hub Bot
               bot_description: Feeds.
@@ -22,8 +21,6 @@ class ConfigTest {
             webhook:
               port: 3000
               path: /chatto/callback
-            chatto:
-              base_url: https://chat.example.com
             feed:
               database_file: feeds.sqlite
               max_items_per_poll: 10
@@ -43,7 +40,16 @@ class ConfigTest {
                 .containsExactly("message.read", "message.read-interactions", "message.post-in-interactions");
         assertThat(loaded.requestedRooms()).containsExactly("general", "Standup");
         assertThat(loaded.webhookPort()).isEqualTo(3000);
-        assertThat(loaded.installFile()).isEqualTo(dir.resolve("hub-install.json"));
+        assertThat(loaded.stateFile()).isEqualTo(dir.resolve("feeds.sqlite"));
+    }
+
+    @Test
+    void ignoresLegacyChattoSection() throws Exception {
+        Path dir = Files.createTempDirectory("rss");
+        Path config = dir.resolve("config.yaml");
+        Files.writeString(config, VALID + "chatto:\n  base_url: https://chat.example.com\n");
+        Config loaded = Config.load(config);
+        assertThat(loaded.botLogin()).isEqualTo("rss_hub_bot");
     }
 
     @Test

@@ -16,10 +16,12 @@ import java.util.regex.Pattern;
 /**
  * Validated runtime settings loaded from YAML after process-environment expansion.
  * There is no `.env` support: all `${NAME}`/`${NAME:-default}` placeholders resolve
- * from the process environment only. The Chatto token is never configured here;
- * it arrives via the Bot Hub install callback and is read from {@code hub.install_file}.
+ * from the process environment only. The bot knows no Chatto server up front: the
+ * token and server URL for every install arrive via Bot Hub callbacks and are
+ * stored in SQLite (see {@code feed.database_file}). Unknown sections such as a
+ * legacy {@code chatto} block are ignored.
  */
-record Config(String baseUrl, Path installFile, String hubBaseUrl,
+record Config(String hubBaseUrl,
               String botLogin, String botDisplayName, String botDescription, String callbackPublicUrl,
               List<String> requestedPermissions, List<String> requestedRooms,
               int webhookPort, String webhookPath,
@@ -31,17 +33,9 @@ record Config(String baseUrl, Path installFile, String hubBaseUrl,
         Path directory = path.toAbsolutePath().getParent();
         Map<String, String> variables = System.getenv();
         JsonNode root = new ObjectMapper(new YAMLFactory()).readTree(Files.readString(path));
-        JsonNode chatto = required(root, "chatto");
         JsonNode hub = required(root, "hub");
         JsonNode webhook = required(root, "webhook");
         JsonNode feed = required(root, "feed");
-
-        String baseUrl = string(chatto, "base_url", variables);
-        HttpSource.requireHttpUrl(baseUrl);
-
-        String installRaw = string(hub, "install_file", variables);
-        Path installFile = Path.of(installRaw);
-        if (!installFile.isAbsolute()) installFile = directory.resolve(installFile);
 
         String hubBaseUrl = string(hub, "base_url", variables);
         HttpSource.requireHttpUrl(hubBaseUrl);
@@ -77,7 +71,7 @@ record Config(String baseUrl, Path installFile, String hubBaseUrl,
         if (state.isBlank()) state = "feeds.sqlite";
         Path stateFile = Path.of(state);
         if (!stateFile.isAbsolute()) stateFile = directory.resolve(stateFile);
-        return new Config(baseUrl, installFile, hubBaseUrl, botLogin, botDisplayName, botDescription,
+        return new Config(hubBaseUrl, botLogin, botDisplayName, botDescription,
                 callbackPublicUrl, requestedPermissions, requestedRooms, webhookPort, webhookPath,
                 maxItems, maxChars, Boolean.parseBoolean(fetchSetting), stateFile, timeout);
     }

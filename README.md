@@ -3,9 +3,10 @@
 A Java 21 bot that publishes articles from any number of RSS 2.0, RDF RSS, and Atom feeds to Chatto channels. Subscriptions and delivered item IDs live in a local SQLite database.
 
 This bot is provisioned through the **Chatto Bot Hub** (unofficial OAuth proxy).
-There is no static token configuration: on install the hub creates the Chatto bot,
+There is no static token or server configuration: on install the hub creates the Chatto bot,
 grants permissions, adds it to rooms, and POSTs the API key to this bot's webhook,
-which saves it to `hub-install.json`.
+which saves it to the `installations` table in SQLite. One bot instance serves
+installs on any number of Chatto servers.
 
 ## Setup
 
@@ -17,10 +18,12 @@ which saves it to `hub-install.json`.
    - Rooms: `general`, `Standup`.
    - Callback URL: the public URL of this bot's webhook, e.g.
      `https://open-proxy.space/chatto/callback` (webhook `port`/`path` in `config.yaml`).
-4. Start this bot: `mvn exec:java`. It listens for the hub callback and waits if the
-   install has not happened yet. Then click **Install** in the hub: the receipt
-   (API key, granted/denied permissions, added/failed rooms) is saved to
-   `hub-install.json` and the bot connects.
+4. Start this bot: `mvn exec:java`. It listens for the hub callback and waits if no
+   install has happened yet. Then click **Install** in the hub: the receipt
+   (server URL, API key, granted/denied permissions, added/failed rooms) is saved to
+   SQLite and the bot connects. Repeat on any other server with the same callback
+   URL — no restart needed; each server gets its own connection and the bot replies
+   on the server each message came from.
 5. Mention the bot in Chatto to manage feeds:
 
 ```
@@ -53,19 +56,20 @@ on restart.
 ## Configuration
 
 `config.yaml` sets the hub registration values, the webhook listener (`port`/`path`),
-the Chatto server URL, and feed settings (`feed.database_file`, item limit, article
+and feed settings (`feed.database_file`, item limit, article
 length, article fetching, HTTP timeout). `${NAME}` requires a process environment
 variable; `${NAME:-default}` supplies a default. There is no `.env` support.
-Relative paths (`hub.install_file`, `feed.database_file`) resolve against the YAML
-directory. `hub-install.json` holds a live API key and is gitignored — never commit it.
+Relative paths (`feed.database_file`) resolve against the YAML
+directory. The SQLite file holds installs (live API keys) plus subscriptions —
+it is gitignored, never commit it.
 
 Run `mvn exec:java`. Use `--config /path/to/config.yaml` for another configuration.
 `--once` polls current subscriptions once and exits without listening (requires an
-existing `hub-install.json`; it fails fast instead of waiting for the callback).
+existing install; it fails fast instead of waiting for the callback).
 
-Subscriptions are stored in SQLite and are created through bot commands.
+Subscriptions are stored in SQLite, scoped per Chatto server, and are created through bot commands. `add`, `pause`, `remove`, and `list` always act on the server the command arrived from; bare `pause` pauses only that server's subscriptions.
 
-A confirmed Chatto post is recorded immediately in SQLite. A crash or database failure between Chatto accepting the post and the record write can still cause a duplicate on retry. SQLite and Chatto outages are logged; the process keeps polling and reconnecting. Startup requires a valid config and a hub install receipt (or waits for one); the webhook listener always runs so hub reinstalls/rotations are saved.
+A confirmed Chatto post is recorded immediately in SQLite. A crash or database failure between Chatto accepting the post and the record write can still cause a duplicate on retry. SQLite and Chatto outages are logged; the process keeps polling and reconnecting. Startup requires a valid config and at least one hub install (or waits for one); the webhook listener always runs so hub reinstalls/rotations are saved and applied, including installs on new servers without a restart.
 
 ## Tests
 
